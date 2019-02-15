@@ -1,0 +1,27 @@
+import os
+def find_prj_root(path=os.getcwd()):
+    if os.path.isfile(os.path.join(path,".PRJ_ROOT")):
+        return path
+    else:
+        if path:
+            return find_prj_root(os.path.dirname(path))
+        else:
+            raise Exception("Can not find the PRJ_ROOT directory")
+
+PRJ_ROOT=find_prj_root()
+ROOT = os.path.dirname(PRJ_ROOT) 
+SRC_DIR=PRJ_ROOT+'/local/src'
+BIN_DIR=PRJ_ROOT+'/local/bin'
+
+DEBUG="yes"
+
+REFERENCE="/home/bioeda/bio/10x_refgenome/refdata-GRCh38-1.0.0"
+MEM=50
+CORES=16
+CELLRANGER="/home/bioeda/bio/cellranger-dna-1.0.0/cellranger-dna"
+FASTQ_DIR="/home/bioeda/bio/spatial/fastq"
+
+SAMPLES=[os.path.basename(d) for d in os.listdir(FASTQ_DIR) if os.path.isdir(os.path.join(FASTQ_DIR,d))]
+#OUR_IDS=["CRC1979XAsx", "CRC1979XAct", "CRC1979XAdx", "CRC1979XBsx", "CRC1979XBdx" ,"CRC1979XBct", "CRC1989XAsx","CRC1989XBsx"]
+#SAMPLES=["Sample_S21597_C1", "Sample_S21598_A1" ,"Sample_S21599_A2" ,"Sample_S21600_C2","Sample_S21601_1979XB","Sample_S21602_1979XB_1","Sample_S21603_1989XB","Sample_S21604_1989XA"]
+OUR_IDS=["CRC1979XBdx"]

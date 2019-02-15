@@ -1,0 +1,40 @@
+include: "conf.sk"
+
+rule all_cnv:
+	input: expand("{sample}.done", sample=OUR_IDS)
+
+rule cellrangercaller:
+    input: lambda wildcards: SAMPLES[OUR_IDS.index(wildcards.sample)]+".plh"
+    params: d= lambda wildcards: SAMPLES[OUR_IDS.index(wildcards.sample)]
+    output: "{sample}.done"
+    shell: 
+        """
+            ln -s {input} {output}
+            ln -s {params.d} {wildcards.sample}
+        """
+
+rule cellrangercounts:
+	params: ref=REFERENCE, fastq_dir=FASTQ_DIR+"{sample}", tool=CELLRANGER, mem=MEM, cores=CORES
+	output: "{sample}.plh"
+	shell: 
+		"""
+		{params.tool} cnv --localmem={params.mem} --localcores={params.cores} --reference={params.ref} --fastqs={params.fastq_dir} --id={wildcards.sample}
+		touch {output}
+		"""
+
+rule print_table:
+    output: "samples.tsv"
+    run:
+        with open(output[0], 'w') as out:
+            assoc = ["\t".join(x) for x in zip(SAMPLES,OUR_IDS)]
+            for a in assoc:
+                out.write("%s\n" % a)
+
+#rule aggrcvs:
+#	input: expand("{sample}.done", sample=SAMPLES)
+#	output: "aggr.csv"
+#	shell:
+#		"""
+#		echo 'library_id,molecule_h5' > {output}
+#		ls Sample_*/outs/molecule_info.h5 | perl -ane '@a=split("/",$_); print $a[0].",".$_' >> {output}
+#		"""

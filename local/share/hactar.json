@@ -1,0 +1,16 @@
+{
+    "__default__":
+    {
+        "mail-user": "elena.grassi@ircc.it",
+        "mail-type": "ALL",
+        "partition": "global",
+        "nodes": "1",
+        "job-name": "{rule}.{wildcards}",
+        "output": "{rule}.{wildcards}.out",
+        "error": "{rule}.{wildcards}.err"
+    },
+    "cellrangercounts":
+    {
+        "time": "72:00:00"
+    }
+}
