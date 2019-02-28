@@ -22,6 +22,14 @@ rule cellrangercounts:
 		touch {output}
 		"""
 
+rule cellrangercounts_ncell:
+	params: ref=REFERENCE, fastq_dir=FASTQ_DIR+"{sample}", tool=CELLRANGER, mem=MEM, cores=CORES
+	output: directory("{sample}-{ncells,\d+}")
+	shell: 
+		"""
+		{params.tool} cnv --localmem={params.mem} --localcores={params.cores} --reference={params.ref} --fastqs={params.fastq_dir} --id={output} --force-cells {wildcards.ncells}
+        """
+
 rule print_table:
     output: "samples.tsv"
     run:
