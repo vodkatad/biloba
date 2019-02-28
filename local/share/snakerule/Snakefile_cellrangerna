@@ -30,6 +30,26 @@ rule print_table:
             for a in assoc:
                 out.write("%s\n" % a)
 
+
+########### checks ####
+
+rule tiny:
+    output: directory("tiny")
+    params: tool=CELLRANGER
+    shell:
+        """
+            {params.tool} testrun --id=tiny
+        """
+
+rule sitecheck:
+    output: "sitecheck.txt"
+    params: tool=CELLRANGER
+    shell:
+        """
+            {params.tool} sitecheck > {output}
+        """
+
+
 #rule aggrcvs:
 #	input: expand("{sample}.done", sample=SAMPLES)
 #	output: "aggr.csv"
