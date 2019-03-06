@@ -39,6 +39,17 @@ rule print_table:
                 out.write("%s\n" % a)
 
 
+rule demultiplexer:
+    input: bam="{sample}/outs/possorted_bam.bam", csv="{sample}/outs/per_cell_summary_metrics.csv"
+    output: directory("{sample}-sc")
+    log: "{sample}-sc.log"
+    params: tool=BIN_DIR+"/sctools_demultiplex"
+    shell:
+        """
+            mkdir {output}
+            {params.tool} --barcodes-csv {input.csv} -o {output} {input.bam}  &> {log}
+        """
+
 ########### checks ####
 
 rule tiny:
