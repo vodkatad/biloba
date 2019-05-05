@@ -99,7 +99,7 @@ def main():
         else:
             return((None, n))
 
-    def process_cell(fcnv1, fcnv2, config):
+    def process_cell(fcnv1, fcnv2, config, barcode):
         tot_cnv1 = 0
         tot_cnv2 = 0
         common_cnvs = 0
@@ -148,11 +148,11 @@ def main():
                     (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
                 else:
                     (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
-        print('{:d}\t{:d}\t{:d}\t{:f}'.format(common_cnvs, tot_cnv1, tot_cnv2, float(common_cnvs)/(tot_cnv1+tot_cnv2-common_cnvs)))
+        print('{:s}\t{:d}\t{:d}\t{:d}\t{:f}'.format(barcode, common_cnvs, tot_cnv1, tot_cnv2, float(common_cnvs)/(tot_cnv1+tot_cnv2-common_cnvs)))
 
     for k in cells1.keys():
         if cells2.get(k):
-            process_cell(cells1[k], cells2[k], config)
+            process_cell(cells1[k], cells2[k], config, k)
 
 if __name__ == '__main__':
     main()

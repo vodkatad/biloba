@@ -22,12 +22,15 @@ rule cellrangercounts:
 		touch {output}
 		"""
 
+ruleorder: cellrangercounts_ncell > cellrangercounts
+
 rule cellrangercounts_ncell:
 	params: ref=REFERENCE, fastq_dir=FASTQ_DIR+"{sample}", tool=CELLRANGER, mem=MEM, cores=CORES
-	output: directory("{sample}-{ncells,\d+}")
+	output: "{sample}-{ncells,\d+}.plh"
 	shell: 
 		"""
-		{params.tool} cnv --localmem={params.mem} --localcores={params.cores} --reference={params.ref} --fastqs={params.fastq_dir} --id={output} --force-cells {wildcards.ncells}
+		{params.tool} cnv --localmem={params.mem} --localcores={params.cores} --reference={params.ref} --fastqs={params.fastq_dir} --id={wildcards.sample}-{wildcards.ncells} --force-cells {wildcards.ncells}
+        touch {output}
         """
 
 rule print_table:
