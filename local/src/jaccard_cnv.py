@@ -36,7 +36,6 @@ class CNV:
     
     # TODO rename with ide
     def get_cn(self):
-        #print("fuck")
         return self.cn
 
 
@@ -61,15 +60,6 @@ class CNV_equivalence:
         #print("{:d} {:d} {:d} {:.15f}".format(len_a, len_b, ov, float(ov) / (len_a+len_b-ov)))
         return (float(ov) / (len_a+len_b-ov)) >= self.MIN_OV # ouch float!
 
-def next_line_count(fh, n):
-    line = fh.readline()
-    if line:
-        return((line, n+1))
-    else:
-        return((line, n))
-        
-
-
 def main():
     usage = '''
             jaccard_cnv -o min_ov -m max_cnv cnv1 cnv2
@@ -83,69 +73,86 @@ def main():
     if len(args) != 2:
         exit('Unexpected argument number.\n' + usage)
 
-    tot_cnv1 = 0
-    tot_cnv2 = 0
-    common_cnvs = 0
     config = CNV_equivalence(options.upper, options.min_ov)
-    with file(args[0], 'r') as fcnv1:
-        with file(args[1], 'r') as fcnv2:
-            done = False
-            # a correct count of the n of cnv should be done with a function...
-            #line1 = fcnv1.readline()
-            (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
-            (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
-            #line2 = fcnv2.readline()
-            while (not done):
-                #print("infinite loop {:s} {:s}".format(line1, line2))
-                skip = False
-                if not line1 and line2: 
-                    (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
-                    #line2 = fcnv2.readline()
-                    skip = True
-                    # we cycle to count all cnvs but do not look for overlaps between smt and nothing
-                if not line2 and line1:
+
+    cells1 = {}
+    cells2 = {}
+
+    def load_cells(dictio, toload, filename):
+        with file(filename, 'r') as fh:
+            for line in fh:
+                l = line.rstrip().split('\t')
+                if len(toload.keys()) == 0 or toload.get(l[3]):
+                    if dictio.get(l[3]):
+                        dictio[l[3]].append(l)
+                    else:
+                        dictio[l[3]] = [l]
+
+    load_cells(cells1, {}, args[0])
+    load_cells(cells2, cells1, args[1])
+    #print(cells1)
+    #print(cells2)
+
+    def next_line_count(cns, n):
+        if n+1 <= len(cns):
+            return((cns[n], n+1))
+        else:
+            return((None, n))
+
+    def process_cell(fcnv1, fcnv2, config):
+        tot_cnv1 = 0
+        tot_cnv2 = 0
+        common_cnvs = 0
+        done = False
+        (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
+        (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
+        while (not done):
+            #print("infinite loop {:s} {:s}".format(line1, line2))
+            skip = False
+            if not line1 and line2: 
+                (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
+                skip = True
+                # we cycle to count all cnvs but do not look for overlaps between smt and nothing
+            if not line2 and line1:
+                (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
+                skip = True
+            if not line1 and not line2:
+                done = True
+                break
+            if skip:
+                continue
+            cnvs1 = line1#.rstrip().split('\t')
+            cnvs2 = line2#.rstrip().split('\t')
+            cnv1 = CNV(cnvs1[0], cnvs1[1], cnvs1[2], cnvs1[4])
+            cnv2 = CNV(cnvs2[0], cnvs2[1], cnvs2[2], cnvs2[4])
+            ov = cnv1.relative_pos(cnv2)
+            if ov[0] and config.overlap(cnv1.length(), cnv2.length(), ov[1]):
+                #print("almost found common! {:s} {:s}".format(cnvs1[1], cnvs2[1]));
+                if (config.compare_cn(cnv1, cnv2)):
+                    #print("found common! {:s} {:s}".format(cnvs1[1], cnvs2[1]));
+                    common_cnvs += 1
                     (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
-                    skip = True
-                if not line1 and not line2:
-                    done = True
-                    break
-                if skip:
-                    continue
-                cnvs1 = line1.rstrip().split('\t')
-                cnvs2 = line2.rstrip().split('\t')
-                cnv1 = CNV(cnvs1[0], cnvs1[1], cnvs1[2], cnvs1[4])
-                cnv2 = CNV(cnvs2[0], cnvs2[1], cnvs2[2], cnvs2[4])
-                ov = cnv1.relative_pos(cnv2)
-                if ov[0] and config.overlap(cnv1.length(), cnv2.length(), ov[1]):
-                    #print("almost found common! {:s} {:s}".format(cnvs1[1], cnvs2[1]));
-                    if (config.compare_cn(cnv1, cnv2)):
-                        #print("found common! {:s} {:s}".format(cnvs1[1], cnvs2[1]));
-                        common_cnvs += 1
-                    #line1 = fcnv1.readline()
-                    (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
-                    #line2 = fcnv2.readline() # we consider the first overlap that we find...lots of corner cases
                     (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
                 else:
                     #print("not overlapping {:s} {:s}".format(cnvs1[1], cnvs2[1]));
                     # refactor - give ordering of chr also in Cnv class after calling relative_pos
                     if ov[1] > 0: # cnv1.begin - cnv2.begin
                         (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
-                        #line2 = fcnv2.readline() # cnv1 is after cnv2, we go on reading from file2
                     elif ov[1] < 0: # check no == 0 corner case TODO
-                        #line1 = fcnv1.readline() # cnv1 is before cnv2, we go on reading from file1
                         (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
-                    else:
-                        # different chrs, we go on the smaller one
-                        chr1 = line1[0];
-                        chr2 = line2[0];
-                        if (chr1 > chr2): # XXX ensure same ordering with sort!
-                            #line2 = fcnv2.readline()
-                            (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
-                        else:
-                            #line1 = fcnv1.readline()
-                            (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
-            print('{:d}\t{:d}\t{:d}\t{:f}'.format(common_cnvs, tot_cnv1, tot_cnv2, common_cnvs/(tot_cnv1+tot_cnv2)))
+            else:
+                # different chrs, we go on the smaller one
+                chr1 = line1[0];
+                chr2 = line2[0];
+                if (chr1 > chr2): # XXX ensure same ordering with sort!
+                    (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
+                else:
+                    (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
+        print('{:d}\t{:d}\t{:d}\t{:f}'.format(common_cnvs, tot_cnv1, tot_cnv2, float(common_cnvs)/(tot_cnv1+tot_cnv2-common_cnvs)))
 
+    for k in cells1.keys():
+        if cells2.get(k):
+            process_cell(cells1[k], cells2[k], config)
 
 if __name__ == '__main__':
     main()
