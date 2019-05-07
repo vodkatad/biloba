@@ -3,6 +3,7 @@ from __future__ import with_statement
 
 from sys import stdin, stderr
 from optparse import OptionParser
+import random
 
 class CNV:
     def __init__(self, chr, begin, end, cn):
@@ -67,6 +68,7 @@ def main():
     parser = OptionParser(usage=usage)
     parser.add_option('-o', '--minov', type=float, dest='min_ov', default=MIN_OV, help='minimum requested overlap to consider CNVs == [default:'+ str(MIN_OV) + ']')
     parser.add_option('-m', '--max_cnv', type=int, dest='upper', default=UPPER, help='upper level to consider cn == [default:' + str(UPPER) + ']')
+    parser.add_option('-r', '--rand', action="store_true", dest="rand", default=False, help='upper level to consider cn == [default:' + str(UPPER) + ']')
 
     options, args = parser.parse_args()
 
@@ -79,7 +81,7 @@ def main():
     cells2 = {}
 
     def load_cells(dictio, toload, filename):
-        with file(filename, 'r') as fh:
+        with open(filename, 'r') as fh:
             for line in fh:
                 l = line.rstrip().split('\t')
                 if len(toload.keys()) == 0 or toload.get(l[3]):
@@ -107,7 +109,6 @@ def main():
         (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
         (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
         while (not done):
-            #print("infinite loop {:s} {:s}".format(line1, line2))
             skip = False
             if not line1 and line2: 
                 (line2, tot_cnv2) = next_line_count(fcnv2, tot_cnv2)
@@ -121,6 +122,7 @@ def main():
                 break
             if skip:
                 continue
+            #print("infinite loop {:s} {:s} {:d} {:d}".format(line1[1], line2[1], tot_cnv1, tot_cnv2))
             cnvs1 = line1#.rstrip().split('\t')
             cnvs2 = line2#.rstrip().split('\t')
             cnv1 = CNV(cnvs1[0], cnvs1[1], cnvs1[2], cnvs1[4])
@@ -150,9 +152,15 @@ def main():
                     (line1, tot_cnv1) = next_line_count(fcnv1, tot_cnv1)
         print('{:s}\t{:d}\t{:d}\t{:d}\t{:f}'.format(barcode, common_cnvs, tot_cnv1, tot_cnv2, float(common_cnvs)/(tot_cnv1+tot_cnv2-common_cnvs)))
 
+    keystwo = list(cells2.keys())
     for k in cells1.keys():
-        if cells2.get(k):
-            process_cell(cells1[k], cells2[k], config, k)
+        if not options.rand:
+            if cells2.get(k):
+                process_cell(cells1[k], cells2[k], config, k)
+        else:
+            kr = random.choice(keystwo)
+            process_cell(cells1[k], cells2[kr], config, k+"_"+kr)
+                
 
 if __name__ == '__main__':
     main()

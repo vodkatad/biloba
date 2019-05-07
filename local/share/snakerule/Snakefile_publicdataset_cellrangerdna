@@ -1,0 +1,90 @@
+include: "conf.sk"
+
+rule all:
+	input: expand("{sample}-demux.done", sample=SAMPLES)
+
+rule demultiplexer:
+	input: bam="{sample}/outs/possorted_bam.bam", csv="{sample}/outs/per_cell_summary_metrics.csv"
+    	output: directory("{sample}-sc")
+    	log: "{sample}-sc-demux.log"
+    	params: tool=BIN_DIR+"/sctools_demultiplex"
+    	shell:
+        	"""
+            	mkdir {output}
+
+            	{params.tool} --barcodes-csv {input.csv} --forbidden-tags XA,SA --min-mapq 30 -o {output} {input.bam}  &> {log}
+
+		"""
+
+rule invalidate_noise:
+	input: "{sample}-sc"
+	output: touch("{sample}-demux.done")
+	params:
+		noisedir="noise-bams",
+		newnoisebam="{sample}-noise.bam"
+	shell:
+		"""
+			if [ ! -d {params.noisedir} ]
+			then
+				mkdir {params.noisedir}
+			fi
+
+			mv {input}/noise.bam {params.noisedir}/{params.newnoisebam}
+
+			
+		"""
+
+
+                                                                                                                                                                                                                                                                                  
+#### Jaccard ###
+rule nowhite:
+    input: "{sample}-sc/results.txt"
+    output: "{sample}-sc_nowhite"
+    params: marilisa=2.7
+    shell:
+        """
+         bawk 'NF>=3 && $2 > 2.7 {{print $1}}' < {input} | sort | uniq > {output}
+        """
+
+rule obtain_sc_cnv_tenx:                                                  
+    input: x="{sample}/outs/node_cnv_calls.bed", dictio="{sample}/outs/per_cell_summary_metrics.csv", now="{sample}-sc_nowhite"
+    output: "{sample}/outs/cell_cnv_calls-{thr}.bed"
+    shell:
+        """
+            grep -v "^#" {input.x} | bawk '$5!=2 && $6>{wildcards.thr}' | grep -v chrX | grep -v chrY | sort -k4,4 -k1,1 -k2,2n \\
+            | translate -k -n <(tr "," "\\t" < {input.dictio} | sed 1d | tr "-" "\\t"  | cut -f 1,3) 4 | filter_1col 4 {input.now} > {output}
+        """
+
+# in conda env sklearn we have the right python packages but not snakemake, first run was manual
+rule jaccard:
+    input: g="{sample}-sc/CNV1", x="{sample}/outs/cell_cnv_calls-{thr}.bed", now="{sample}-sc_nowhite"
+    output: "{sample}-{thr}.jac"
+    params: tool=BIN_DIR+"/jaccard_cnv"
+    shell:
+        """
+             sort -k4,4 -k1,1 -k2,2n {input.g} | filter_1col 4 {input.now} | grep -v chrX | grep -v chrY > {output}.tmp
+             {params.tool} {output}.tmp {input.x} > {output}
+             rm {output}.tmp
+        """
+
+rule jaccard_rand:
+    input: g="{sample}-sc/CNV1", x="{sample}/outs/cell_cnv_calls-{thr}.bed", now="{sample}-sc_nowhite"
+    output: "{sample}-{thr}.rand_jac"
+    params: tool=BIN_DIR+"/jaccard_cnv"
+    shell:
+        """
+             sort -k4,4 -k1,1 -k2,2n {input.g} | filter_1col 4 {input.now} | grep -v chrX | grep -v chrY > {output}.tmp
+             {params.tool} -r {output}.tmp {input.x} > {output}
+             rm {output}.tmp
+        """
+
+rule jaccardkb:
+    input: g="{sample}-sc-{kb}/CNV1", x="{sample}/outs/cell_cnv_calls.bed"
+    output: "{sample}-{kb}.jac"
+    params: tool=BIN_DIR+"/jaccard_cnv"
+    shell:
+        """
+             sort -k4,4 -k1,1 -k2,2n {input.g} |  tr "." "\\t" | cut -f 1,2,3,6,8 | grep -v chrX | grep -v chrY > {output}.tmp
+             {params.tool} {output}.tmp {input.x} > {output}
+             rm {output}.tmp
+        """
