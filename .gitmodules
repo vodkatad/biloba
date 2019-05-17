@@ -1,0 +1,3 @@
+[submodule "local/src/ginkgo"]
+	path = local/src/ginkgo
+	url = https://github.com/robertaboukhalil/ginkgo.git
