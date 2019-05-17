@@ -24,8 +24,11 @@ Python libraries:
 After having cloned the repositories and installed the requirements cellranger-dna and its
 appropriate reference genomes tarballs need to be downloaded from the 10x website 
 (https://support.10xgenomics.com/single-cell-dna/software/downloads/latest).
+
 A bash script to perform the whole analysis on public datasets is available:
 `dataset/publicdataset/cellrangerdna/sc_pipeline`
-In this same directory users should put the results from cellranger-dna from public datasets.
-For your own 10x experiments the pipeline is in `dataset/cellrangerdna`, the directory
+Users should put the results from cellranger-dna from public datasets in the same directory before
+using sc_pipeline.
+
+For your own 10x experiments the pipeline to run cellranger-dna is in  `dataset/cellrangerdna`, the directory
 where the fastq files can be found has to be set up in the `conf.sk` file.
