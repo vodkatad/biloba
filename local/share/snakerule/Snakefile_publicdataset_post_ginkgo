@@ -1,0 +1,72 @@
+
+#------------------------------- functions -------------------------------------------
+
+def get_ginkgo_done(wildcards):
+    return expand("{sample}-heatmap2.done", sample=SAMPLES)
+
+#------------------------------- Rules --------------------------------------------
+
+
+rule multi_sample_done:
+    input: "multi_dendr.done"
+    output: "multi_sample.done"
+
+
+rule filter_cells:
+    input:  'ginkgo.done'
+    output: touch("{sample}-filter-cells.done")
+    params: script=BIN_DIR+"/filter_cells", segcopy="{sample}-sc/SegCopy", results="{sample}-sc/results.txt",
+            low = LOW_DIPLOID_THRESH, high =  HIGH_DIPLOID_THRESH, filter=FILTER
+    shell:
+        """ 
+               python {params.script} {params.low} {params.high} {params.results} {params.segcopy} {wildcards.sample}-sc/
+        """
+
+rule heatmap2:
+    input: "{sample}-filter-cells.done"
+    output: touch("{sample}-heatmap2.done")
+    params: script=BIN_DIR+"/heatmap", segcopy="{sample}-sc/filtered_SegCopy"
+    shell:
+        """ 
+
+            python {params.script} {params.segcopy} {wildcards.sample}-sc/heatmap_tumor_cells.png
+
+        """
+
+rule merge_samples:
+    input: get_ginkgo_done
+    params: script=BIN_DIR + "/multi_sample_heatmap",
+            sample_list=SAMPLES
+    output: touch("multi_dendr.done")
+    shell:
+        """
+
+            args=()
+            i=0
+            for sample in {params.sample_list}; do
+                args[$i]="$sample=$sample-sc/filtered_SegCopy"
+                i=$((i+1))
+            done
+
+            python {params.script} $(echo ${{args[@]}}) .
+
+
+        """
+
+
+#rule evol_dist:
+#    input: "multi_dendr3.done"
+#    output: touch("evol_dist1.done")
+#    params: script=BIN_DIR + "/phylodist_cmp.py",
+#            newick="multi_sample_tree.newick",
+#            samples_json="samples.json"
+#    shell:
+#        """
+#            python {params.script} {params.newick} {params.samples_json} .
+#        """    
+
+
+
+
+
+

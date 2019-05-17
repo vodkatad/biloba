@@ -1,0 +1,57 @@
+include: 'conf.sk'
+
+#------------------------------- functions -------------------------------------------
+
+def get_ginkgo_done(wildcards):
+    return expand("{sample}-sc-ginkgo" + BINNING + ".done", sample=SAMPLES)
+
+#------------------------------ rules -----------------------------------------------
+
+rule all:
+ 	#input: "pipeline.complete" 
+ 	input: "multi_dendr.done"
+
+rule merge_results:
+	input: get_ginkgo_done
+	params: script=BIN_DIR + "/multi_sample_heatmap.py",
+            sample_list=SAMPLES
+	output: touch("multi_dendr.done") 
+	shell:
+		"""     
+
+            args=()
+            i=0
+            for sample in {params.sample_list}; do
+                args[$i]="$sample=$sample-sc/SegCopy"
+                i=$((i+1))
+            done
+
+            python {params.script} $(echo ${{args[@]}}) .
+            
+		
+		"""
+
+rule reclust:
+    input: "merge.done"
+    output: touch("phylo_ensemble.done")
+    params: ginkgo=SRC_DIR+"/ginkgo/cli/reclust.sh", 
+        genome=GENOME,
+        binning=BINNING,
+        clust_dist=CLUST_DIST,
+        clust_link=CLUST_LINK,
+        results = "results_merged.txt", 
+        segbreaks = "SegBreaks_merged", 
+        segfixed = "SegFixed_merged"
+    shell:
+        """
+         p=$(pwd)
+         {params.ginkgo} --genome {params.genome} --input $p --results $p/{params.results} --segfixed $p/{params.segfixed} --segbreaks $p/{params.segbreaks} --binning {params.binning} --clustlinkage {params.clust_link} --clustdist {params.clust_dist}
+
+		"""
+'''
+rule phylo_distance:
+	input: tree="clust2.newick"
+	output: touch("pipeline.complete")
+	params:
+    script=BIN_DIR+"/phylodist_cmp.py"
+'''

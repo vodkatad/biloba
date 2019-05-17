@@ -1,0 +1,17 @@
+include: 'conf.sk'
+
+FILES=["SegCopy"]
+
+rule all:
+	input: expand("{sample}-sc/{file}_old", sample=SAMPLES, file=FILES)
+
+rule fix_header:
+	input: "{sample}-sc/{file}"
+	output: "{sample}-sc/{file}_old"
+	params: script=BIN_DIR+"/fix_ginkgo_headers.py"
+	shell:
+		"""
+		python {params.script} {input}
+		mv {input} {output}
+		mv {input}_corrected {input}
+		"""

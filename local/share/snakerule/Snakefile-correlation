@@ -1,0 +1,39 @@
+include: 'conf.sk'
+
+rule all:
+	input: expand("{sample}-correlation-normal-noinf-int.done", sample=SAMPLES),
+            expand("{sample}-correlation-tumor-noinf-int1.done", sample=SAMPLES)
+
+
+rule cnv_correlation_tumor:
+    input:  "{sample}-sc-ginkgo-" + BINNING + ".done"
+    output: touch("{sample}-correlation-tumor-noinf-int1.done")
+    params:
+        script=BIN_DIR+"/correlateCN.py",
+        ginkgo_res="{sample}-sc-20kb/SegCopy",
+        ginkgo_stats="{sample}-sc-20kb/results.txt",
+        cr_res="{sample}/outs/cnv_data.h5",
+        cr_csv="{sample}/outs/per_cell_summary_metrics.csv",
+        low = LOW_DIPLOID_THRESH, high =  HIGH_DIPLOID_THRESH
+    shell:
+       """
+        python {params.script} {params.low} {params.high} tumoral {params.cr_res} {params.cr_csv} {params.ginkgo_res} {params.ginkgo_stats} {wildcards.sample} {wildcards.sample}-sc-20kb/tumor 
+       """
+
+rule cnv_correlation_normal:
+    input:  "{sample}-sc-ginkgo-" + BINNING + ".done"
+    output: touch("{sample}-correlation-normal-noinf-int.done")
+    params:
+        script=BIN_DIR+"/correlateCN.py",
+        ginkgo_res="{sample}-sc-20kb/SegCopy",
+        ginkgo_stats="{sample}-sc-20kb/results.txt",
+        cr_res="{sample}/outs/cnv_data.h5",
+        cr_csv="{sample}/outs/per_cell_summary_metrics.csv",
+        low = LOW_DIPLOID_THRESH, high =  HIGH_DIPLOID_THRESH
+    shell:
+       """
+        python {params.script} {params.low} {params.high} normal {params.cr_res} {params.cr_csv} {params.ginkgo_res} {params.ginkgo_stats} {wildcards.sample} {wildcards.sample}-sc-20kb/normal
+       """
+
+
+

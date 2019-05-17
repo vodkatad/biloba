@@ -1,0 +1,114 @@
+##---------------------------- Functions ---------------------------------------
+
+def get_beds(wildcards):
+	import glob
+	bams=glob.glob(wildcards.sample + "-sc/*.bam")
+	res=[x.replace(".bam", ".bed.gz") for x in bams]
+	#res=[x.replace(".bed", ".bed.gz") for x in beds]
+	return res
+
+def get_ginkgo_done(wildcards):
+    import numpy as np
+    res = expand("{sample}-heatmap.done", sample=SAMPLES)
+    res1 = expand("{sample}-annotation.done", sample=SAMPLES)
+    res = np.append(res, res1)
+
+    res2 = expand("{sample}-cnv.done", sample=SAMPLES)
+    res = np.append(res, res2)
+
+    res3 = expand("{sample}-density_plot.done", sample=SAMPLES)
+    res = np.append(res, res3)
+
+    return res
+
+
+#--------------------- Rules -----------------------------------
+
+
+rule ginkgo_done:
+    input: get_ginkgo_done
+    output: 'ginkgo.done'
+
+rule mk_beds:
+	input: "{sample}-sc/{id}.bam"
+	output: "{sample}-sc/{id}.bed"
+	shell:
+		"""
+		samtools view  -u {input} | bamToBed -i - > {output}
+		"""
+rule gzip_beds:
+	input: "{sample}-sc/{id}.bed"
+	output: "{sample}-sc/{id}.bed.gz"
+	shell:
+		"""
+		gzip {input}
+		"""
+
+rule ginkgo:
+	input: get_beds
+	output: touch("{sample}-sc-ginkgo" + BINNING + ".done")
+	params:
+		ginkgo=BIN_DIR+"/ginkgo/cli/ginkgo.sh",
+		beds_dir="/{sample}-sc",
+		genome=GENOME,
+		binning=BINNING,
+		clust_dist=CLUST_DIST,
+		clust_link=CLUST_LINK,
+		init=INIT
+	shell:
+		"""
+		# Sample usage
+		# usage=" ---> Sample usage: /ginkgo/cli/ginkgo.sh --input dir/to/bed/files/ --genome hg19 --binning variable_500000_101_bowtie [--clustdist euclidean] [--clustlinkage ward] [--facs facs.txt] [--maskbadbins] [--maskpsrs] [--masksexchrs]"
+		module load gnu/5.4.0
+		module load R/3.5.1
+		
+		p=$(pwd)
+
+		if [ {params.init} == 1 ]; then
+			{params.ginkgo} --input $p/{params.beds_dir} --genome {params.genome} --binning {params.binning} --clustdist {params.clust_dist} --clustlinkage {params.clust_link} --init
+		else
+			{params.ginkgo} --input $p/{params.beds_dir} --genome {params.genome} --binning {params.binning} --clustdist {params.clust_dist} --clustlinkage {params.clust_link}
+		fi
+
+		"""
+
+rule heatmap:
+    input: "{sample}-sc-ginkgo" + BINNING + ".done"
+    output: touch("{sample}-heatmap.done")
+    params: script=BIN_DIR+"/heatmap", segcopy="{sample}-sc/SegCopy.old"
+    shell:
+        """
+
+            python {params.script} {params.segcopy} {wildcards.sample}-sc/heatmap.png
+
+        """
+
+rule annotate:
+    input: "{sample}-sc-ginkgo" + BINNING + ".done"
+    output: touch("{sample}-annotation.done")
+    params: cnvbed="{sample}-sc/CNV1", genes=REFERENCE+"/genes_hugo.bed"
+    shell:
+        """
+            bedmap --echo --delim '\t' --echo-map-id {params.cnvbed} {params.genes} > {wildcards.sample}-sc/CNV1_annotated
+        """
+
+
+rule mean_cnv:
+    input: "{sample}-sc-ginkgo" + BINNING + ".done"
+    output: touch("{sample}-cnv.done")
+    params: script=BIN_DIR+"/plot_mean_cnv", segcopy="{sample}-sc/SegCopy"
+    shell:
+        """
+
+            python {params.script} {params.segcopy} {wildcards.sample}-sc/mean_cn.png
+        """
+
+rule density_plot:
+    input: "{sample}-sc-ginkgo" + BINNING + ".done"
+    output: touch("{sample}-density_plot.done")
+    params: script=BIN_DIR+"/CN_density_plot", results="{sample}-sc/results.txt"
+    shell:
+        """
+            python {params.script} {params.results} {wildcards.sample}-sc
+        """
+

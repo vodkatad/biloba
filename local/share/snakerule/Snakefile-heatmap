@@ -1,0 +1,25 @@
+include: 'conf.sk'
+
+rule all:
+    input: expand("{sample}-cnv.done", sample=SAMPLES)
+
+rule heatmap:
+    input: "{sample}-sc/SegCopy"
+    output: touch("{sample}-heatmap.done")
+    params: script=BIN_DIR+"/heatmap.py"
+    shell:
+        """
+    
+            python {params.script} {input} {wildcards.sample}-sc/
+
+        """
+
+rule mean_cnv:
+    input:  "{sample}-sc/SegCopy"
+    output: touch("{sample}-cnv.done")
+    params: script=BIN_DIR+"/plot_mean_cnv.py"
+    shell:
+        """
+
+            python {params.script} {input} {wildcards.sample}-sc/
+        """

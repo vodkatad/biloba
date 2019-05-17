@@ -1,0 +1,111 @@
+{
+  "__default__":
+  {
+    "mail-user": "marilisa.montemurro@polito.it",
+    "mail-type": "ALL",
+    "partition": "global",
+    "nodes": "1",
+    "job-name": "{rule}.{wildcards}",
+    "output": "{rule}.{wildcards}.out",
+    "error": "{rule}.{wildcards}.err",
+    "time": "00:30:00",
+    "mem": "4096",
+    "ntasks": "1"
+  },
+  "demultiplexer":
+  {
+    "time": "30:00:00",
+    "mem": "16000",
+    "ntasks": "1"
+  },
+  "ginkgo":
+  {
+    "partition":"bioeda",
+    "time":"unlimited",
+    "mem":"120000",
+    "ntask":"1"
+  },
+  "cnv_correlation_tumor":
+  {
+    "time":"01:00:00",
+    "mem":"20000",
+    "ntask":"1"
+  },
+  "cnv_correlation_normal":
+  {
+    "time":"01:00:00",
+    "mem":"20000",
+    "ntask":"1"
+  },
+  "mk_beds":{
+    "mail-type": "FAIL",
+  }, 
+  "gzip_beds":{
+    "mail-type": "FAIL"
+  },
+  "reheader":{
+    "mail-type":"FAIL"
+  },
+  "chromosomes_heatmaps":
+  {
+    "time":"8:00:00",
+    "mem":"20000",
+    "ntask":"1"
+  },
+  "fix_header":
+  {
+    "time":"00:30:00",
+    "mem":"16000",
+    "ntask":"1"
+  },
+  "plot_correlation":{
+    "time":"01:00:00",
+    "mem":"50000",
+    "ntask":"1"
+  },
+  "heatmap":{
+    "time":"00:30:00",
+    "mem":"16000",
+    "ntask":"1"
+  },
+  "mean_cnv":{
+    "time":"00:30:00",
+    "mem":"16000"
+  },
+  "merge_samples":
+  {
+      "time":"00:30:00",
+      "mem":"16000",
+      "job-name": "{rule}",
+      "output": "{rule}.out",
+      "error": "{rule}.err"
+  },
+  "reclust":
+  {
+    "partition":"bioeda",
+    "time":"24:00:00",
+    "mem":"120000",
+    "job-name": "{rule}",
+    "output": "{rule}.out",
+    "error": "{rule}.err"
+  },
+  "filter_cells":{
+    "mem":"8000"
+  },
+  "heatmap2":{
+    "time":"00:30:00",
+    "mem":"16000"
+  },
+  "evol_dist":{
+    "time":"00:30:00",
+    "mem":"16000",
+    "job-name": "{rule}",
+    "output": "{rule}.out",
+    "error": "{rule}.err"
+  },
+  "annotate":{
+    "mem":"8000"
+  }
+}
+
+    

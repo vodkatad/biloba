@@ -1,0 +1,41 @@
+#modify this configuration file to change analysis parameters
+
+import os
+def find_prj_root(path=os.getcwd()):
+        if os.path.isfile(os.path.join(path,".PRJ_ROOT")):
+                return path
+        else:
+                if path:
+                        return find_prj_root(os.path.dirname(path))
+                else:
+                        raise Exception("Can not find the PRJ_ROOT directory")
+
+PRJ_ROOT=find_prj_root()
+ROOT = os.path.dirname(PRJ_ROOT)
+SRC_DIR=PRJ_ROOT+'/local/src'
+BIN_DIR=PRJ_ROOT+'/local/bin'
+REFERENCE="" #10x reference genome
+
+
+
+
+#ginkgo config
+GENOME="GrCh38"
+BINNING="fixed_20000"
+CLUST_DIST="euclidean"
+CLUST_LINK="complete"
+INIT=1
+
+##For possible future usage
+##
+##SEGMENTATION=0
+##MASK_BADBINS=0
+##MASK_SEXCHRS=0
+##MASK_PSRS=0
+##DIR_CELLS_LIST=""
+
+# post Ginkgo params
+LOW_DIPLOID_THRESH=1.5
+HIGH_DIPLOID_THRESH=2.7
+
+SAMPLES=["breast_tissue_A", "breast_tissue_B"]
